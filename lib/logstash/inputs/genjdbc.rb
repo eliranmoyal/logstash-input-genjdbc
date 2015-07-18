@@ -177,14 +177,14 @@ class LogStash::Inputs::Genjdbc < LogStash::Inputs::Base
           value = rs.getString(columnName)
           
           # Debug (find out columntype for each object)
-          # columnType = rsmd.getColumnTypeName(i)          
+          columnType = rsmd.getColumnTypeName(i)          
           # puts "Column Type is : "+(columnType) 
            
           if value.nil?
             #substitute "" for <nil> returned by DB
             value = ""
           end
-          event[columnName] = value
+          event[columnName] = update_value(columnType,value)
           
           # Check the column to set the latest time field
           if columnName == @jdbcTimeField
@@ -226,6 +226,19 @@ class LogStash::Inputs::Genjdbc < LogStash::Inputs::Base
   def teardown
       @interrupted = true
   end # def teardown
+
+  def update_value(column_type,value)
+    case column_type
+      when "NUMBER" 
+        value.to_f
+      when "TIMESTAMP"
+        DateTime.parse value
+      when "DATE"
+        DateTime.parse value
+      else 
+        value
+    end   
+  end
 
   def esacpe_time_field(jdbclastEvent)
     if @jdbcTargetDB == "oracle"
