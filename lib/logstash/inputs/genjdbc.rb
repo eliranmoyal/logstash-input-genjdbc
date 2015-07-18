@@ -136,9 +136,8 @@ class LogStash::Inputs::Genjdbc < LogStash::Inputs::Base
   
     # Main Loop
     while true
-      
-      # Debug : puts "lastEvent : "+lastEvent.to_s
-      jdbclastEvent = lastEvent.strftime("%Y-%m-%d %H:%M:%S.%L")
+
+      jdbclastEvent = lastEvent.strftime("%Y-%m-%d %H:%M:%S.%L") 
       currentTime = jdbclastEvent
       
       stmt = conn.create_statement
@@ -152,9 +151,9 @@ class LogStash::Inputs::Genjdbc < LogStash::Inputs::Base
       # Escape sql query provided from config file
         begin
           if originalQuery.include? " where " then
-            escapedQuery = originalQuery + " and "+@jdbcTimeField+" > '" + jdbclastEvent + "'" + " order by " +@jdbcTimeField
+            escapedQuery = originalQuery + " and "+@jdbcTimeField+" > " + esacpe_time_field(jdbclastEvent)  + " order by " +@jdbcTimeField
           else
-            escapedQuery = originalQuery + " where "+@jdbcTimeField+" > '" + jdbclastEvent + "'" +  " order by " +@jdbcTimeField
+            escapedQuery = originalQuery + " where "+@jdbcTimeField+" > " + esacpe_time_field(jdbclastEvent) +  " order by " +@jdbcTimeField
           end
         end
       end
@@ -166,7 +165,6 @@ class LogStash::Inputs::Genjdbc < LogStash::Inputs::Base
     
       # Execute Query Statement
       rs = stmt.executeQuery(escapedQuery)
-
       rsmd = rs.getMetaData();
       columnCount = rsmd.getColumnCount()
 
@@ -179,8 +177,8 @@ class LogStash::Inputs::Genjdbc < LogStash::Inputs::Base
           value = rs.getString(columnName)
           
           # Debug (find out columntype for each object)
-          #columnType = rsmd.getColumnTypeName(i)          
-          #puts "Column Type is : "+(columnType)
+          # columnType = rsmd.getColumnTypeName(i)          
+          # puts "Column Type is : "+(columnType) 
            
           if value.nil?
             #substitute "" for <nil> returned by DB
@@ -228,5 +226,13 @@ class LogStash::Inputs::Genjdbc < LogStash::Inputs::Base
   def teardown
       @interrupted = true
   end # def teardown
+
+  def esacpe_time_field(jdbclastEvent)
+    if @jdbcTargetDB == "oracle"
+      "to_timestamp('#{jdbclastEvent}','yyyy-mm-dd hh24:mi:ss,FF9')"
+    else
+      "'#{jdbclastEvent}'"
+    end
+  end
   
 end # class LogStash::Inputs::Genjdbc
